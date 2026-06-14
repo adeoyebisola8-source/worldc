@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>World Cup Campaign — Daily Revenue</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg:       #f4f6fb;
+    --white:    #ffffff;
+    --text:     #1a1f36;
+    --muted:    #6b7a99;
+    --border:   #e2e8f0;
+    --combined: #7c3aed;   /* vivid purple  */
+    --web:      #0ea5e9;   /* sky blue      */
+    --app:      #f97316;   /* vibrant orange */
+    --header-from: #1e1b4b;
+    --header-to:   #4c1d95;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  /* ── Header ─────────────────────────────────── */
+  .header {
+    background: linear-gradient(135deg, var(--header-from) 0%, var(--header-to) 100%);
+    padding: 30px 40px 26px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-bottom: 4px solid #7c3aed;
+  }
+  .campaign-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #a78bfa;
+    margin-bottom: 6px;
+  }
+  .header-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 46px;
+    letter-spacing: 2px;
+    color: #ffffff;
+    line-height: 1;
+  }
+  .header-title span { color: #f97316; }
+  .header-right { text-align: right; }
+  .header-meta { font-size: 11px; color: #a78bfa; letter-spacing: 1px; text-transform: uppercase; }
+  .header-days { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: #ffffff; }
+
+  /* ── KPI strip ──────────────────────────────── */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    padding: 28px 40px 0;
+  }
+  .kpi-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 26px 18px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+  .kpi-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 4px;
+    border-radius: 0 0 14px 14px;
+  }
+  .kpi-card.combined::after { background: var(--combined); }
+  .kpi-card.web::after      { background: var(--web); }
+  .kpi-card.app::after      { background: var(--app); }
+
+  .kpi-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+  .kpi-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+  }
+  .kpi-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 40px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  .kpi-card.combined .kpi-value { color: var(--combined); }
+  .kpi-card.web      .kpi-value { color: var(--web); }
+  .kpi-card.app      .kpi-value { color: var(--app); }
+  .kpi-sub { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* ── Charts ─────────────────────────────────── */
+  .charts-section {
+    padding: 28px 40px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .chart-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 26px 28px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+  .chart-header { margin-bottom: 20px; }
+  .chart-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1.5px;
+    color: var(--text);
+  }
+  .chart-subtitle { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .chart-wrap { position: relative; height: 270px; }
+
+  /* ── Table ──────────────────────────────────── */
+  .table-section { padding: 28px 40px 0; }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 1.5px;
+    color: var(--text);
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .data-table thead tr { border-bottom: 2px solid var(--border); }
+  .data-table th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 10px 16px;
+    background: #f8faff;
+  }
+  .data-table td {
+    padding: 13px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: #f8faff; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-right: 4px;
+  }
+  .badge.web { background: #e0f2fe; color: #0369a1; }
+  .badge.app { background: #ffedd5; color: #c2410c; }
+  .badge.total { background: #ede9fe; color: #6d28d9; }
+
+  .footer {
+    text-align: center;
+    padding: 36px 40px 0;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 1px;
+  }
+  .footer strong { color: var(--combined); }
+
+  @media (max-width: 700px) {
+    .header, .kpi-strip, .charts-section, .table-section, .footer { padding-left: 16px; padding-right: 16px; }
+    .kpi-strip { grid-template-columns: 1fr; }
+    .header-title { font-size: 32px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <div class="campaign-label">⚽ World Cup Campaign · Daily Revenue</div>
+    <div class="header-title">Football <span>Mania</span></div>
+  </div>
+  <div class="header-right">
+    <div class="header-meta">Campaign active</div>
+    <div class="header-days" id="daysCount">—</div>
+    <div class="header-meta" id="todayDate"></div>
+  </div>
+</div>
+
+<div class="kpi-strip">
+  <div class="kpi-card combined">
+    <div class="kpi-label"><span class="kpi-dot" style="background:var(--combined)"></span>FM Combined</div>
+    <div class="kpi-value" id="kpi-combined">₦0</div>
+    <div class="kpi-sub" id="kpi-combined-sub">Web + Mobile · 0 days</div>
+  </div>
+  <div class="kpi-card web">
+    <div class="kpi-label"><span class="kpi-dot" style="background:var(--web)"></span>FM Web</div>
+    <div class="kpi-value" id="kpi-web">₦0</div>
+    <div class="kpi-sub" id="kpi-web-sub">Football Mania · 0 days</div>
+  </div>
+  <div class="kpi-card app">
+    <div class="kpi-label"><span class="kpi-dot" style="background:var(--app)"></span>FM App</div>
+    <div class="kpi-value" id="kpi-app">₦0</div>
+    <div class="kpi-sub" id="kpi-app-sub">Football Mania App · 0 days</div>
+  </div>
+</div>
+
+<div class="charts-section">
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">Football Mania — Combined Daily Revenue</div>
+      <div class="chart-subtitle">Web + Mobile · area line showing campaign trend</div>
+    </div>
+    <div class="chart-wrap"><canvas id="chartCombined"></canvas></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">Football Mania Web — Daily Revenue</div>
+      <div class="chart-subtitle">fm-web only · bar chart</div>
+    </div>
+    <div class="chart-wrap"><canvas id="chartWeb"></canvas></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-header">
+      <div class="chart-title">Football Mania App — Daily Revenue</div>
+      <div class="chart-subtitle">fm-mobile only · line chart</div>
+    </div>
+    <div class="chart-wrap"><canvas id="chartApp"></canvas></div>
+  </div>
+
+</div>
+
+<div class="table-section">
+  <div class="section-title">Daily Breakdown</div>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>FM Web</th>
+        <th>FM App</th>
+        <th>Combined</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody id="dataTableBody"></tbody>
+  </table>
+</div>
+
+<div class="footer">
+  Updated: <strong id="lastUpdated"></strong> · Revenue in ₦ (Naira) · World Cup Campaign 2026
+</div>
+
+<script>
+// ============================================================
+// DATA — add new daily rows here as campaign progresses
+// ============================================================
+const revenueData = [
+  { date: "2026-06-11", web: 31897,  app: 45648, note: "Campaign launch day" },
+  { date: "2026-06-12", web: 54796,  app: 24289, note: "" },
+  { date: "2026-06-13", web: 89088,  app: 23000, note: "" },
+  { date: "2026-06-14", web: 25795,  app: 6900,  note: "Partial day (in progress)" },
+];
+// ============================================================
+
+const CAMPAIGN_START = new Date("2026-06-11");
+
+function fmt(n) {
+  return "₦" + n.toLocaleString("en-NG");
+}
+
+function setup() {
+  const today = new Date();
+  const dayNum = Math.max(1, Math.floor((today - CAMPAIGN_START) / 86400000) + 1);
+  document.getElementById("daysCount").textContent = "Day " + dayNum;
+  document.getElementById("todayDate").textContent = today.toLocaleDateString("en-GB", { day:"2-digit", month:"short", year:"numeric" });
+  document.getElementById("lastUpdated").textContent = today.toLocaleString("en-GB");
+
+  const labels      = revenueData.map(r => new Date(r.date).toLocaleDateString("en-GB", { day:"2-digit", month:"short" }));
+  const webData     = revenueData.map(r => r.web);
+  const appData     = revenueData.map(r => r.app);
+  const combinedData = revenueData.map(r => r.web + r.app);
+
+  const totalWeb      = webData.reduce((a, b) => a + b, 0);
+  const totalApp      = appData.reduce((a, b) => a + b, 0);
+  const totalCombined = totalWeb + totalApp;
+  const days          = revenueData.length;
+
+  document.getElementById("kpi-combined").textContent  = fmt(totalCombined);
+  document.getElementById("kpi-web").textContent       = fmt(totalWeb);
+  document.getElementById("kpi-app").textContent       = fmt(totalApp);
+  document.getElementById("kpi-combined-sub").textContent = `Web + Mobile · ${days} day${days !== 1 ? 's' : ''}`;
+  document.getElementById("kpi-web-sub").textContent   = `Football Mania · ${days} day${days !== 1 ? 's' : ''}`;
+  document.getElementById("kpi-app-sub").textContent   = `Football Mania App · ${days} day${days !== 1 ? 's' : ''}`;
+
+  const baseOpts = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "#1a1f36",
+        titleColor: "#ffffff",
+        bodyColor: "#a0aec0",
+        padding: 12,
+        borderWidth: 0,
+        callbacks: { label: ctx => "  " + fmt(ctx.parsed.y) }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: "#e2e8f0", lineWidth: 1 },
+        ticks: { color: "#6b7a99", font: { size: 12 } }
+      },
+      y: {
+        grid: { color: "#e2e8f0", lineWidth: 1 },
+        ticks: {
+          color: "#6b7a99",
+          font: { size: 12 },
+          callback: v => "₦" + v.toLocaleString()
+        },
+        beginAtZero: true
+      }
+    }
+  };
+
+  // ── Combined: filled area line ─────────────────
+  const ctx1 = document.getElementById("chartCombined").getContext("2d");
+  const grad1 = ctx1.createLinearGradient(0, 0, 0, 270);
+  grad1.addColorStop(0, "rgba(124,58,237,0.30)");
+  grad1.addColorStop(1, "rgba(124,58,237,0.03)");
+
+  new Chart(ctx1, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "Combined",
+        data: combinedData,
+        borderColor: "#7c3aed",
+        borderWidth: 3,
+        pointBackgroundColor: "#7c3aed",
+        pointBorderColor: "#ffffff",
+        pointBorderWidth: 2.5,
+        pointRadius: 7,
+        pointHoverRadius: 9,
+        fill: true,
+        backgroundColor: grad1,
+        tension: 0.4
+      }]
+    },
+    options: baseOpts
+  });
+
+  // ── Web: bold bar ──────────────────────────────
+  new Chart(document.getElementById("chartWeb"), {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [{
+        label: "FM Web",
+        data: webData,
+        backgroundColor: "rgba(14,165,233,0.85)",
+        borderColor: "#0ea5e9",
+        borderWidth: 2,
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: baseOpts
+  });
+
+  // ── App: line with thick stroke + big dots ─────
+  const ctx3 = document.getElementById("chartApp").getContext("2d");
+  const grad3 = ctx3.createLinearGradient(0, 0, 0, 270);
+  grad3.addColorStop(0, "rgba(249,115,22,0.20)");
+  grad3.addColorStop(1, "rgba(249,115,22,0.01)");
+
+  new Chart(ctx3, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [{
+        label: "FM App",
+        data: appData,
+        borderColor: "#f97316",
+        borderWidth: 3,
+        pointBackgroundColor: "#f97316",
+        pointBorderColor: "#ffffff",
+        pointBorderWidth: 2.5,
+        pointRadius: 7,
+        pointHoverRadius: 9,
+        fill: true,
+        backgroundColor: grad3,
+        tension: 0.4
+      }]
+    },
+    options: baseOpts
+  });
+
+  // ── Table ──────────────────────────────────────
+  const tbody = document.getElementById("dataTableBody");
+  revenueData.forEach(r => {
+    const d = new Date(r.date).toLocaleDateString("en-GB", { weekday:"short", day:"2-digit", month:"short", year:"numeric" });
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td style="font-weight:600">${d}</td>
+      <td style="color:#0369a1;font-weight:600">${fmt(r.web)}</td>
+      <td style="color:#c2410c;font-weight:600">${fmt(r.app)}</td>
+      <td>
+        <span class="badge total">${fmt(r.web + r.app)}</span>
+      </td>
+      <td style="color:var(--muted);font-size:12px">${r.note || "—"}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // totals row
+  const totalRow = document.createElement("tr");
+  totalRow.style.background = "#f8faff";
+  totalRow.innerHTML = `
+    <td style="font-weight:700;font-size:13px;color:var(--text)">TOTAL</td>
+    <td style="color:#0369a1;font-weight:700">${fmt(totalWeb)}</td>
+    <td style="color:#c2410c;font-weight:700">${fmt(totalApp)}</td>
+    <td><span class="badge total" style="font-size:11px">${fmt(totalCombined)}</span></td>
+    <td></td>
+  `;
+  tbody.appendChild(totalRow);
+}
+
+setup();
+</script>
+</body>
+</html>
